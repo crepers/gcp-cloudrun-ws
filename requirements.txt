@@ -1,0 +1,6 @@
+websockets
+opentelemetry-api
+opentelemetry-sdk
+opentelemetry-exporter-prometheus
+prometheus_client
+
