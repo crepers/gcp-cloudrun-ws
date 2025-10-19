@@ -37,6 +37,11 @@
 
         let websocket;
 
+        // Dynamically set the WebSocket URI based on the current page's location
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsHost = window.location.host;
+        uriInput.value = `${wsProtocol}//${wsHost}`;
+
         function log(type, message) {
             const p = document.createElement('p');
             p.className = `message ${type}`;

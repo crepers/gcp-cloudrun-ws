@@ -1,21 +1,21 @@
 # WebSocket Echo Server (Python) with OpenTelemetry
 
-This repository contains a minimal WebSocket echo server written in Python. It is instrumented with **OpenTelemetry** to expose Prometheus-compatible metrics, making it observable and ready for cloud-native environments like Google Cloud Run.
+This repository contains a minimal WebSocket echo server written in Python. It is instrumented with **OpenTelemetry** to export metrics directly to **Google Cloud Monitoring**, making it observable and ready for cloud-native environments like Google Cloud Run.
 
 It also includes a simple HTML/JavaScript test client served directly from the application.
 
 ## Features
 
 -   WebSocket echo functionality.
--   Metrics exposed in Prometheus format.
+-   Metrics exported directly to Google Cloud Monitoring.
 -   Instrumented with OpenTelemetry for vendor-neutral observability.
 -   Built-in web-based test client.
 -   Containerized with a `Dockerfile` for easy deployment.
 
 ## Files
 
--   `wsecho.py`: The main Python server application.
--   `requirements.txt`: Python dependencies (websockets, OpenTelemetry).
+-   `main.py`: The main Python server application.
+-   `requirements.txt`: Python dependencies (websockets, OpenTelemetry, Google Cloud Exporter).
 -   `Dockerfile`: Container image definition.
 -   `static/index.html`: A simple web-based client for testing the server.
 
@@ -23,7 +23,7 @@ It also includes a simple HTML/JavaScript test client served directly from the a
 
 Metrics are exposed via OpenTelemetry and are compatible with Prometheus.
 
--   `websocket_connections_total` (Counter): Total number of websocket connections started.
+-   `websocket_connections_total` (Counter): Total number of WebSocket connections started.
 -   `websocket_active_connections` (UpDownCounter): Number of active websocket connections.
 -   `websocket_messages_received_total` (Counter): Total number of messages received.
 -   `websocket_messages_sent_total` (Counter): Total number of messages sent.
@@ -39,12 +39,21 @@ Metrics are exposed via OpenTelemetry and are compatible with Prometheus.
     source .venv/bin/activate
     pip install -r requirements.txt
     ```
+    > **Note:** On Debian-based systems (like Ubuntu), you may need to install the `venv` package separately if it's not included with your Python installation. You can do this by running:
+    > ```bash
+    > sudo apt-get update
+    > sudo apt-get install python3-venv
+    > ```
+    > If you are using a specific Python version (e.g., `python3.11`), install the corresponding package (e.g., `python3.11-venv`).
 
 2.  **Run the server:**
 
     ```bash
-    python3 wsecho.py
+    python3 main.py
     ```
+    > **Note:** When running locally, metrics are configured to be sent to Google Cloud Monitoring. They will not be accessible locally unless you modify `main.py` to use a different exporter (e.g., `ConsoleMetricExporter`).
+
+
     The server will start on `http://localhost:8080`.
 
 3.  **Test the server:**
@@ -92,13 +101,24 @@ This server can be deployed directly from source to Google Cloud Run. Google Clo
     gcloud run deploy websocket-echo \
       --source . \
       --region us-central1 \
-      --platform managed \
       --service-account=$SERVICE_ACCOUNT_EMAIL \
       --allow-unauthenticated \
       --project $PROJECT_ID
     ```
-    
+      
     Cloud Run will automatically use the `PORT` environment variable, which defaults to 8080. Once deployed, you can access the test client at the URL provided by Cloud Run.
+
+6.  **Verify Metrics in Cloud Monitoring:** After deploying and sending some test messages, you can view the custom metrics in the Google Cloud Console.
+
+    1.  Navigate to **Metrics Explorer** in the Cloud Monitoring section.
+    2.  In the "Select a metric" configuration, choose the following:
+        -   **Resource type**: `Cloud Run Revision` (`cloud_run_revision`)
+        -   **Metric**: Find metrics with the prefix `custom.googleapis.com/opentelemetry/`, for example:
+            -   `custom.googleapis.com/opentelemetry/websocket_connections_total`
+            -   `custom.googleapis.com/opentelemetry/websocket_active_connections`
+    3.  You can filter by `service_name` to see metrics for your specific `websocket-echo` service.
+
+    > It may take a few minutes for the metrics to appear after the service starts and receives traffic.
 
 ## Cleanup
 
@@ -123,4 +143,3 @@ To avoid incurring charges, you can delete the resources you created.
 ## Notes and considerations
 - Cloud Run scales to zero.
 - For production environments, consider adding health checks, structured logging, and authentication.
-
